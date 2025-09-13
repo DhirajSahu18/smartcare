@@ -1,0 +1,278 @@
+import express from 'express';
+import { Hospital, HospitalSlot } from '../models/index.js';
+import { authenticate, authorize } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// Calculate distance between two points using Haversine formula
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 3959; // Earth's radius in miles
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  
+  return Math.round(distance * 10) / 10;
+};
+
+const toRadians = (degrees) => {
+  return degrees * (Math.PI / 180);
+};
+
+// @route   GET /api/hospitals
+// @desc    Get hospitals with filtering and sorting
+// @access  Public
+router.get('/', async (req, res) => {
+  try {
+    const { 
+      disease, 
+      specialty, 
+      lat, 
+      lng, 
+      radius = 50, 
+      minRating = 0,
+      limit = 50,
+      offset = 0 
+    } = req.query;
+
+    // Build query
+    let query = { isActive: true, rating: { $gte: parseFloat(minRating) } };
+
+    // Filter by disease
+    if (disease) {
+      query.diseases = { $regex: disease, $options: 'i' };
+    }
+
+    // Filter by specialty
+    if (specialty) {
+      query.specialties = { $regex: specialty, $options: 'i' };
+    }
+
+    // Location-based filtering
+    if (lat && lng && radius) {
+      const radiusInMeters = parseFloat(radius) * 1609.34; // Convert miles to meters
+      query.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          $maxDistance: radiusInMeters
+        }
+      };
+    }
+
+    let hospitals = await Hospital.find(query)
+      .limit(parseInt(limit))
+      .skip(parseInt(offset))
+      .sort({ rating: -1, name: 1 });
+
+    // Calculate distances if user location provided
+    if (lat && lng) {
+      hospitals = hospitals.map(hospital => {
+        const hospitalObj = hospital.toObject();
+        hospitalObj.distance = calculateDistance(
+          parseFloat(lat), 
+          parseFloat(lng), 
+          hospital.latitude, 
+          hospital.longitude
+        );
+        return hospitalObj;
+      });
+
+      // Sort by distance if location provided
+      hospitals.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        hospitals,
+        total: hospitals.length,
+        filters: {
+          disease,
+          specialty,
+          location: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null,
+          radius: parseFloat(radius),
+          minRating: parseFloat(minRating)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get hospitals error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching hospitals'
+    });
+  }
+});
+
+// @route   GET /api/hospitals/:id
+// @desc    Get single hospital by ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const hospital = await Hospital.findById(id);
+
+    if (!hospital) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hospital not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { hospital }
+    });
+
+  } catch (error) {
+    console.error('Get hospital error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching hospital'
+    });
+  }
+});
+
+// @route   GET /api/hospitals/:id/slots
+// @desc    Get available slots for a hospital
+// @access  Public
+router.get('/:id/slots', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date parameter is required'
+      });
+    }
+
+    // Check if hospital exists
+    const hospital = await Hospital.findById(id);
+    if (!hospital) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hospital not found'
+      });
+    }
+
+    // Get slots for the date
+    const slots = await HospitalSlot.find({
+      hospital: id,
+      date: new Date(date)
+    }).sort({ timeSlot: 1 });
+
+    const slotsObj = {};
+    slots.forEach(slot => {
+      slotsObj[slot.timeSlot] = slot.actuallyAvailable;
+    });
+
+    // If no slots exist for this date, generate default slots
+    if (Object.keys(slotsObj).length === 0) {
+      const defaultSlots = [
+        '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+        '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
+      ];
+
+      const slotPromises = defaultSlots.map(async (timeSlot) => {
+        const isAvailable = Math.random() > 0.3; // 70% chance of being available
+        slotsObj[timeSlot] = isAvailable;
+
+        // Create slot in database
+        await HospitalSlot.findOneAndUpdate(
+          { hospital: id, date: new Date(date), timeSlot },
+          { 
+            hospital: id, 
+            date: new Date(date), 
+            timeSlot, 
+            isAvailable,
+            maxAppointments: 1,
+            currentAppointments: 0
+          },
+          { upsert: true, new: true }
+        );
+      });
+
+      await Promise.all(slotPromises);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        hospitalId: id,
+        date,
+        slots: slotsObj
+      }
+    });
+
+  } catch (error) {
+    console.error('Get hospital slots error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching hospital slots'
+    });
+  }
+});
+
+// @route   POST /api/hospitals/:id/slots
+// @desc    Add or update hospital slot
+// @access  Private (Hospital only)
+router.post('/:id/slots', authenticate, authorize('hospital'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, timeSlot, isAvailable } = req.body;
+
+    // Check if this is the hospital's own slots
+    if (req.user._id.toString() !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage your own hospital slots'
+      });
+    }
+
+    // Upsert slot
+    const slot = await HospitalSlot.findOneAndUpdate(
+      { hospital: id, date: new Date(date), timeSlot },
+      { 
+        hospital: id, 
+        date: new Date(date), 
+        timeSlot, 
+        isAvailable,
+        maxAppointments: 1,
+        currentAppointments: 0
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Hospital slot updated successfully',
+      data: {
+        hospitalId: id,
+        date,
+        timeSlot,
+        isAvailable
+      }
+    });
+
+  } catch (error) {
+    console.error('Update hospital slot error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating hospital slot'
+    });
+  }
+});
+
+export default router;
