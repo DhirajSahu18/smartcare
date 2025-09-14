@@ -285,17 +285,6 @@ const SlotManagement = () => {
       alert('Failed to update slot. Please try again.');
     }
   };
-      setNewTimeSlot('');
-      setShowAddSlot(false);
-    }
-  };
-
-  const toggleSlotAvailability = (timeSlot) => {
-    const currentStatus = slots[timeSlot];
-    addHospitalSlot(hospitalId, selectedDate, timeSlot, !currentStatus);
-    const updatedSlots = getHospitalSlots(hospitalId, selectedDate);
-    setSlots(updatedSlots);
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
