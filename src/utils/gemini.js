@@ -149,24 +149,69 @@ const generateChatResponse = (message, context) => {
   const msg = message.toLowerCase();
   
   if (msg.includes('emergency') || msg.includes('urgent')) {
-    return "I understand you're concerned about urgent symptoms. If you're experiencing severe chest pain, difficulty breathing, loss of consciousness, or other life-threatening symptoms, please call 108 (National Emergency Number) or 102 (Ambulance) immediately or go to the nearest emergency room.";
+    return "🚨 I understand you're concerned about urgent symptoms. If you're experiencing severe chest pain, difficulty breathing, loss of consciousness, or other life-threatening symptoms, please call 108 (National Emergency Number) or 102 (Ambulance) immediately or go to the nearest emergency room.";
+  }
+  
+  if (msg.includes('chest pain') || msg.includes('heart pain')) {
+    return "⚠️ Chest pain can be serious and requires immediate attention. Please call 108 immediately or go to the nearest emergency room. Do not drive yourself - have someone else drive you or call an ambulance.";
+  }
+  
+  if (msg.includes('headache') || msg.includes('head pain')) {
+    return "💊 For headaches, try resting in a dark, quiet room and apply a cold compress. Stay hydrated and avoid bright lights. If the headache is severe, sudden, or accompanied by fever, vision changes, or neck stiffness, seek immediate medical attention.";
+  }
+  
+  if (msg.includes('stomach pain') || msg.includes('abdominal pain')) {
+    return "🤢 Stomach pain can have various causes. Try to rest and avoid solid foods temporarily. Stay hydrated with clear fluids. If the pain is severe, persistent, or accompanied by fever, vomiting, or blood, please seek medical attention immediately.";
+  }
+  
+  if (msg.includes('fever') || msg.includes('temperature')) {
+    return "🌡️ For fever, rest and stay hydrated. You can take paracetamol as directed on the package. If fever is above 103°F (39.4°C), persists for more than 3 days, or is accompanied by severe symptoms, consult a doctor immediately.";
+  }
+  
+  if (msg.includes('cough') || msg.includes('cold')) {
+    return "🤧 For cough and cold, get plenty of rest, stay hydrated, and consider warm salt water gargles. If cough persists for more than 2 weeks, is accompanied by blood, or you have difficulty breathing, please consult a healthcare provider.";
+  }
+  
+  if (msg.includes('back pain') || msg.includes('spine')) {
+    return "🦴 For back pain, try gentle stretching, apply heat or cold therapy, and avoid heavy lifting. Maintain good posture and consider over-the-counter pain relievers. If pain is severe, radiates down your leg, or persists for more than a few days, consult a doctor.";
+  }
+  
+  if (msg.includes('diabetes') || msg.includes('blood sugar')) {
+    return "🩺 If you have diabetes concerns, monitor your blood sugar levels regularly, follow your prescribed diet, and take medications as directed. If you experience symptoms like excessive thirst, frequent urination, or blurred vision, consult your doctor immediately.";
+  }
+  
+  if (msg.includes('breathing') || msg.includes('shortness of breath')) {
+    return "🫁 Difficulty breathing can be serious. If you're having severe trouble breathing, chest pain, or feel like you're suffocating, call 108 immediately. For mild breathing issues, try to stay calm, sit upright, and breathe slowly.";
   }
   
   if (msg.includes('pain')) {
-    return "I can help you understand your pain symptoms. Can you describe where the pain is located and rate it on a scale of 1-10? Also, let me know if it's sharp, dull, throbbing, or burning.";
+    return "🩹 I can help you understand your pain symptoms. Can you describe where the pain is located and rate it on a scale of 1-10? Also, let me know if it's sharp, dull, throbbing, or burning. This will help me provide better guidance.";
   }
   
   if (msg.includes('medication') || msg.includes('medicine')) {
-    return "While I can provide general information about symptoms and care, I cannot recommend specific medications. Please consult with a healthcare provider for proper medication advice and prescriptions.";
+    return "💊 While I can provide general information about symptoms and care, I cannot recommend specific medications. Please consult with a healthcare provider for proper medication advice and prescriptions.";
   }
   
   if (msg.includes('appointment') || msg.includes('book')) {
-    return "I can help you find appropriate hospitals for your condition. Based on your symptoms, I recommend looking for specialists in the relevant field. Would you like me to show you nearby hospitals?";
+    return "📅 I can help you find appropriate hospitals for your condition. Based on your symptoms, I recommend looking for specialists in the relevant field. Would you like me to show you nearby hospitals?";
+  }
+  
+  if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
+    return "👋 Hello! I'm here to help you with your health concerns. Please describe your symptoms or what you're experiencing, and I'll provide appropriate guidance and care recommendations.";
+  }
+  
+  if (msg.includes('thank') || msg.includes('thanks')) {
+    return "🙏 You're welcome! I'm glad I could help. Remember, if your symptoms worsen or you have any concerns, don't hesitate to consult with a healthcare professional. Stay safe and take care!";
   }
   
   if (context?.disease) {
-    return `Based on your symptoms suggesting ${context.disease}, I recommend seeking care from a ${context.specialty} specialist. The urgency level is ${context.urgencyLevel}. Would you like me to help you find nearby hospitals that specialize in this area?`;
+    return `🏥 Based on your symptoms suggesting ${context.disease}, I recommend seeking care from a ${context.specialty} specialist. The urgency level is ${context.urgencyLevel}. Would you like me to help you find nearby hospitals that specialize in this area?`;
   }
   
-  return "I'm here to help you understand your symptoms and guide you to appropriate care. Please remember that I'm an AI assistant and cannot replace professional medical advice. Can you tell me more about what you're experiencing?";
+  // More specific default response based on common health queries
+  if (msg.includes('symptom') || msg.includes('feel') || msg.includes('hurt') || msg.includes('sick')) {
+    return "🩺 I understand you're not feeling well. To provide better guidance, could you please describe your specific symptoms? For example, are you experiencing pain, fever, nausea, or other discomfort? The more details you provide, the better I can help you.";
+  }
+  
+  return "🤖 I'm here to help you with your health concerns. Please describe your symptoms or what you're experiencing - for example, any pain, discomfort, fever, or other health issues you're facing. I'll provide appropriate guidance and care recommendations.";
 };

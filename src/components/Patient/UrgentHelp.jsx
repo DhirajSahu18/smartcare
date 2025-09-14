@@ -15,8 +15,8 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
       id: 'welcome',
       type: 'ai',
       content: analysis 
-        ? `Hello! I understand you're experiencing symptoms related to ${analysis.predictedDisease}. I'm here to provide guidance and support. How can I help you right now?`
-        : "Hello! I'm your urgent care assistant. I'm here to help you with immediate medical concerns. Please describe what you're experiencing.",
+        ? `👋 Hello! I understand you're experiencing symptoms related to ${analysis.predictedDisease}. I'm here to provide guidance and support. How can I help you right now?`
+        : "👋 Hello! I'm your urgent care assistant. I'm here to help you with immediate medical concerns. Please describe what you're experiencing.",
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
@@ -119,7 +119,7 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
       const errorMessage = {
         id: Date.now().toString(),
         type: 'ai',
-        content: "I apologize, but I'm having trouble processing your request right now. If this is a medical emergency, please call 911 or go to the nearest emergency room immediately.",
+        content: "⚠️ I apologize, but I'm having trouble processing your request right now. If this is a medical emergency, please call 108 (National Emergency) or 102 (Ambulance) immediately or go to the nearest emergency room.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
