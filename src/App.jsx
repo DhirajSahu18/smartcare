@@ -50,23 +50,6 @@ function App() {
   const handleAnalysisComplete = (analysis) => {
     setViewData(prev => ({ ...prev, analysis }));
   };
-    }
-  }, []);
-
-  const handleNavigate = (view, data = {}) => {
-    setCurrentView(view);
-    setViewData(data);
-  };
-
-  const handleLogin = (userData) => {
-    setUser(userData);
-    const userRole = userData.role;
-    setCurrentView(userRole === 'hospital' ? 'hospital-dashboard' : 'start-care');
-  };
-
-  const handleAnalysisComplete = (analysis) => {
-    setViewData(prev => ({ ...prev, analysis }));
-  };
 
   const renderCurrentView = () => {
     switch (currentView) {
