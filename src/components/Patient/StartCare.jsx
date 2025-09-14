@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, MapPin, MessageCircle, Loader2, AlertTriangle, Heart, Lightbulb } from 'lucide-react';
-import { analyzeSymptoms } from '../../utils/gemini';
+import { aiAPI } from '../../utils/api';
 
 const StartCare = ({ onNavigate, onAnalysisComplete }) => {
   const [symptoms, setSymptoms] = useState('');
@@ -12,11 +12,24 @@ const StartCare = ({ onNavigate, onAnalysisComplete }) => {
     
     setLoading(true);
     try {
-      const result = await analyzeSymptoms(symptoms);
-      setAnalysis(result);
-      onAnalysisComplete?.(result);
+      const response = await aiAPI.analyzeSymptoms(symptoms);
+      if (response.success) {
+        const analysisData = response.data.analysis;
+        setAnalysis(analysisData);
+        onAnalysisComplete?.(analysisData);
+      } else {
+        throw new Error(response.message || 'Analysis failed');
+      }
     } catch (error) {
       console.error('Analysis failed:', error);
+      // Show error to user
+      setAnalysis({
+        predictedDisease: 'Analysis Error',
+        specialty: 'General Medicine',
+        urgencyLevel: 'medium',
+        careGuidance: 'Unable to analyze symptoms at this time. Please consult with a healthcare provider.',
+        preventiveMeasures: ['Consult with a healthcare professional', 'Monitor your symptoms', 'Seek medical attention if symptoms worsen']
+      });
     } finally {
       setLoading(false);
     }

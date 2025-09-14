@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Star, Phone, Navigation, Calendar, Loader2, AlertCircle } from 'lucide-react';
-import { sampleHospitals } from '../../data/hospitals';
+import { hospitalsAPI } from '../../utils/api';
 import { getUserLocation, calculateDistance, getDefaultLocation } from '../../utils/location';
 
 const FindHospitals = ({ onNavigate, analysis }) => {
@@ -30,34 +30,33 @@ const FindHospitals = ({ onNavigate, analysis }) => {
       
       setUserLocation(location);
       
-      // Filter and sort hospitals
-      let filteredHospitals = [...sampleHospitals];
+      // Prepare search parameters
+      const searchParams = {
+        lat: location.latitude,
+        lng: location.longitude,
+        radius: 50,
+        minRating: 0
+      };
       
-      // Filter by disease/specialty if analysis is available
+      // Add disease/specialty filters if analysis is available
       if (analysis?.predictedDisease) {
-        filteredHospitals = filteredHospitals.filter(hospital => {
-          const matchesDisease = hospital.diseases.some(disease =>
-            disease.toLowerCase().includes(analysis.predictedDisease.toLowerCase()) ||
-            analysis.predictedDisease.toLowerCase().includes(disease.toLowerCase())
-          );
-          const matchesSpecialty = hospital.specialties.some(specialty =>
-            specialty.toLowerCase().includes(analysis.specialty.toLowerCase()) ||
-            analysis.specialty.toLowerCase().includes(specialty.toLowerCase())
-          );
-          return matchesDisease || matchesSpecialty;
-        });
+        searchParams.disease = analysis.predictedDisease;
+      }
+      if (analysis?.specialty) {
+        searchParams.specialty = analysis.specialty;
       }
       
-      // Calculate distances and sort
-      const hospitalsWithDistance = filteredHospitals.map(hospital => ({
-        ...hospital,
-        distance: calculateDistance(location.latitude, location.longitude, hospital.lat, hospital.lng)
-      }));
+      // Fetch hospitals from backend
+      const response = await hospitalsAPI.getHospitals(searchParams);
       
-      hospitalsWithDistance.sort((a, b) => a.distance - b.distance);
-      setHospitals(hospitalsWithDistance);
+      if (response.success) {
+        setHospitals(response.data.hospitals);
+      } else {
+        throw new Error(response.message || 'Failed to fetch hospitals');
+      }
     } catch (error) {
       console.error('Failed to initialize hospitals:', error);
+      setHospitals([]);
     } finally {
       setLoading(false);
     }

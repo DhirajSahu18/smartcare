@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUser, getUserRole } from './utils/auth';
+import { getUser, getUserRole, verifyUser } from './utils/auth';
 
 // Components
 import Header from './components/Layout/Header';
@@ -21,9 +21,35 @@ function App() {
   useEffect(() => {
     const storedUser = getUser();
     if (storedUser) {
-      setUser(storedUser);
-      const userRole = getUserRole();
-      setCurrentView(userRole === 'hospital' ? 'hospital-dashboard' : 'start-care');
+      // Verify user session with backend
+      verifyUser()
+        .then((userData) => {
+          setUser(storedUser);
+          const userRole = getUserRole();
+          setCurrentView(userRole === 'hospital' ? 'hospital-dashboard' : 'start-care');
+        })
+        .catch((error) => {
+          console.error('Session verification failed:', error);
+          // Keep user logged out if session is invalid
+          setCurrentView('landing');
+        });
+    }
+  }, []);
+
+  const handleNavigate = (view, data = {}) => {
+    setCurrentView(view);
+    setViewData(data);
+  };
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    const userRole = userData.user?.role || userData.role;
+    setCurrentView(userRole === 'hospital' ? 'hospital-dashboard' : 'start-care');
+  };
+
+  const handleAnalysisComplete = (analysis) => {
+    setViewData(prev => ({ ...prev, analysis }));
+  };
     }
   }, []);
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, MapPin, Settings, Plus, Eye } from 'lucide-react';
-import { getAppointments, getHospitalSlots, addHospitalSlot, getAllHospitalSlots } from '../../utils/appointments';
-import { getUser } from '../../utils/auth';
+import { appointmentsAPI, hospitalsAPI } from '../../utils/api';
+import { getUser, getUserId } from '../../utils/auth';
 
 const HospitalDashboard = () => {
   const [activeTab, setActiveTab] = useState('appointments');
@@ -18,28 +18,41 @@ const HospitalDashboard = () => {
   }, []);
 
   const loadData = () => {
-    const hospitalAppointments = getAppointments(user.id, 'hospital');
-    setAppointments(hospitalAppointments);
-    
-    // Calculate stats
-    const today = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    loadHospitalData();
+  };
 
-    const todayCount = hospitalAppointments.filter(apt => apt.date === today).length;
-    const weekCount = hospitalAppointments.filter(apt => {
-      const aptDate = new Date(apt.date);
-      return aptDate >= startOfWeek && aptDate <= endOfWeek;
-    }).length;
-    const totalPatients = new Set(hospitalAppointments.map(apt => apt.patientId)).size;
+  const loadHospitalData = async () => {
+    try {
+      const response = await appointmentsAPI.getAppointments();
+      if (response.success) {
+        const hospitalAppointments = response.data.appointments;
+        setAppointments(hospitalAppointments);
+        
+        // Calculate stats
+        const today = new Date().toISOString().split('T')[0];
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-    setStats({
-      todayAppointments: todayCount,
-      weekAppointments: weekCount,
-      totalPatients
-    });
+        const todayCount = hospitalAppointments.filter(apt => 
+          apt.date.split('T')[0] === today
+        ).length;
+        const weekCount = hospitalAppointments.filter(apt => {
+          const aptDate = new Date(apt.date);
+          return aptDate >= startOfWeek && aptDate <= endOfWeek;
+        }).length;
+        const totalPatients = new Set(hospitalAppointments.map(apt => apt.patient?._id)).size;
+
+        setStats({
+          todayAppointments: todayCount,
+          weekAppointments: weekCount,
+          totalPatients
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load hospital data:', error);
+    }
   };
 
   const getUpcomingAppointments = () => {
@@ -136,10 +149,12 @@ const HospitalDashboard = () => {
               {getUpcomingAppointments().length > 0 ? (
                 <div className="space-y-4">
                   {getUpcomingAppointments().map((appointment) => (
-                    <div key={appointment.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div key={appointment._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-2">{appointment.patientName}</h3>
+                          <h3 className="font-semibold text-gray-900 mb-2">
+                            {appointment.patient?.name || appointment.patientName || 'Patient'}
+                          </h3>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
                             <div className="flex items-center space-x-1">
                               <Calendar className="h-3 w-3" />
@@ -184,11 +199,13 @@ const HospitalDashboard = () => {
 };
 
 // Slot Management Component
-const SlotManagement = ({ hospitalId }) => {
+const SlotManagement = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState({});
   const [showAddSlot, setShowAddSlot] = useState(false);
   const [newTimeSlot, setNewTimeSlot] = useState('');
+  const user = getUser();
+  const hospitalId = getUserId();
 
   useEffect(() => {
     const tomorrow = new Date();
@@ -197,11 +214,22 @@ const SlotManagement = ({ hospitalId }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
-      const hospitalSlots = getHospitalSlots(hospitalId, selectedDate);
-      setSlots(hospitalSlots);
+    if (selectedDate && hospitalId) {
+      loadSlots();
     }
   }, [selectedDate, hospitalId]);
+
+  const loadSlots = async () => {
+    try {
+      const response = await hospitalsAPI.getHospitalSlots(hospitalId, selectedDate);
+      if (response.success) {
+        setSlots(response.data.slots);
+      }
+    } catch (error) {
+      console.error('Failed to load slots:', error);
+      setSlots({});
+    }
+  };
 
   const getNextFewDays = () => {
     const days = [];
@@ -223,11 +251,40 @@ const SlotManagement = ({ hospitalId }) => {
     return days;
   };
 
-  const handleAddSlot = () => {
-    if (newTimeSlot && selectedDate) {
-      addHospitalSlot(hospitalId, selectedDate, newTimeSlot, true);
-      const updatedSlots = getHospitalSlots(hospitalId, selectedDate);
-      setSlots(updatedSlots);
+  const handleAddSlot = async () => {
+    if (newTimeSlot && selectedDate && hospitalId) {
+      try {
+        await hospitalsAPI.updateHospitalSlot(hospitalId, {
+          date: selectedDate,
+          timeSlot: newTimeSlot,
+          isAvailable: true
+        });
+        await loadSlots();
+        setNewTimeSlot('');
+        setShowAddSlot(false);
+      } catch (error) {
+        console.error('Failed to add slot:', error);
+        alert('Failed to add slot. Please try again.');
+      }
+    }
+  };
+
+  const toggleSlotAvailability = async (timeSlot) => {
+    if (!hospitalId) return;
+    
+    try {
+      const currentStatus = slots[timeSlot];
+      await hospitalsAPI.updateHospitalSlot(hospitalId, {
+        date: selectedDate,
+        timeSlot,
+        isAvailable: !currentStatus
+      });
+      await loadSlots();
+    } catch (error) {
+      console.error('Failed to toggle slot:', error);
+      alert('Failed to update slot. Please try again.');
+    }
+  };
       setNewTimeSlot('');
       setShowAddSlot(false);
     }

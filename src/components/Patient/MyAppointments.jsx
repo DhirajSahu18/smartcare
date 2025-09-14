@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Phone, Edit3, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { getAppointments, updateAppointment, cancelAppointment } from '../../utils/appointments';
-import { getUser } from '../../utils/auth';
-import { sampleHospitals } from '../../data/hospitals';
+import { appointmentsAPI } from '../../utils/api';
 
 const MyAppointments = ({ onNavigate }) => {
   const [appointments, setAppointments] = useState([]);
@@ -14,25 +12,36 @@ const MyAppointments = ({ onNavigate }) => {
   }, []);
 
   const loadAppointments = () => {
-    const user = getUser();
-    const userAppointments = getAppointments(user.id, 'patient');
-    setAppointments(userAppointments);
-    setLoading(false);
+    loadAppointmentsFromAPI();
   };
 
-  const getHospitalDetails = (hospitalId) => {
-    return sampleHospitals.find(h => h.id === hospitalId);
+  const loadAppointmentsFromAPI = async () => {
+    try {
+      const response = await appointmentsAPI.getAppointments();
+      if (response.success) {
+        setAppointments(response.data.appointments);
+      }
+    } catch (error) {
+      console.error('Failed to load appointments:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCancelAppointment = (appointmentId) => {
-    const cancelled = cancelAppointment(appointmentId);
-    if (cancelled) {
-      loadAppointments();
+  const handleCancelAppointment = async (appointmentId) => {
+    try {
+      const response = await appointmentsAPI.updateAppointment(appointmentId, { status: 'cancelled' });
+      if (response.success) {
+        loadAppointments();
+      }
+    } catch (error) {
+      console.error('Failed to cancel appointment:', error);
+      alert('Failed to cancel appointment. Please try again.');
     }
   };
 
   const handleRescheduleAppointment = (appointment) => {
-    const hospital = getHospitalDetails(appointment.hospitalId);
+    const hospital = appointment.hospital;
     onNavigate('book-appointment', { hospital, isReschedule: true });
   };
 
@@ -132,15 +141,15 @@ const MyAppointments = ({ onNavigate }) => {
       {filteredAppointments.length > 0 ? (
         <div className="space-y-4">
           {filteredAppointments.map((appointment) => {
-            const hospital = getHospitalDetails(appointment.hospitalId);
+            const hospital = appointment.hospital;
             
             return (
-              <div key={appointment.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div key={appointment._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                        {hospital?.name || appointment.hospitalName}
+                        {hospital?.name || appointment.hospitalName || 'Hospital'}
                       </h3>
                       <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full border text-sm font-medium ${getStatusColor(appointment.status)}`}>
                         {getStatusIcon(appointment.status)}
@@ -177,7 +186,7 @@ const MyAppointments = ({ onNavigate }) => {
 
                         <div className="flex items-center space-x-2">
                           <Phone className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">{hospital.contact}</span>
+                          <span className="text-sm text-gray-600">{hospital.phone}</span>
                         </div>
                       </>
                     )}

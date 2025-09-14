@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Check, ArrowLeft, MapPin, Phone } from 'lucide-react';
-import { getHospitalSlots, saveAppointment, initializeDefaultSlots } from '../../utils/appointments';
-import { getUser } from '../../utils/auth';
+import { hospitalsAPI, appointmentsAPI } from '../../utils/api';
+import { getUser, getUserId } from '../../utils/auth';
 
 const BookAppointment = ({ onNavigate, hospital, analysis }) => {
   const [selectedDate, setSelectedDate] = useState('');
@@ -12,9 +12,6 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
   const [appointment, setAppointment] = useState(null);
 
   useEffect(() => {
-    // Initialize default slots for all hospitals
-    initializeDefaultSlots([hospital]);
-    
     // Set default date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -22,12 +19,23 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
   }, [hospital]);
 
   useEffect(() => {
-    if (selectedDate) {
-      const slots = getHospitalSlots(hospital.id, selectedDate);
-      setAvailableSlots(slots);
+    if (selectedDate && hospital) {
+      loadHospitalSlots();
       setSelectedTime(''); // Reset time when date changes
     }
-  }, [selectedDate, hospital.id]);
+  }, [selectedDate, hospital]);
+
+  const loadHospitalSlots = async () => {
+    try {
+      const response = await hospitalsAPI.getHospitalSlots(hospital._id, selectedDate);
+      if (response.success) {
+        setAvailableSlots(response.data.slots);
+      }
+    } catch (error) {
+      console.error('Failed to load hospital slots:', error);
+      setAvailableSlots({});
+    }
+  };
 
   const getNextFewDays = () => {
     const days = [];
@@ -61,23 +69,32 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
     setLoading(true);
     
     try {
-      const user = getUser();
       const appointmentData = {
-        patientId: user.id,
-        patientName: user.name,
-        hospitalId: hospital.id,
-        hospitalName: hospital.name,
+        hospitalId: hospital._id,
         date: selectedDate,
         timeSlot: selectedTime,
-        disease: analysis?.predictedDisease,
         symptoms: analysis?.symptoms
       };
       
-      const newAppointment = saveAppointment(appointmentData);
-      setAppointment(newAppointment);
+      if (analysis?.predictedDisease) {
+        appointmentData.disease = analysis.predictedDisease;
+      }
+      
+      const response = await appointmentsAPI.bookAppointment(appointmentData);
+      if (response.success) {
+        setAppointment({
+          ...appointmentData,
+          hospitalName: hospital.name,
+          patientName: getUser().user?.name || getUser().name
+        });
+        setBooked(true);
+      } else {
+        throw new Error(response.message || 'Failed to book appointment');
+      }
       setBooked(true);
     } catch (error) {
       console.error('Failed to book appointment:', error);
+      alert(error.message || 'Failed to book appointment. Please try again.');
     } finally {
       setLoading(false);
     }

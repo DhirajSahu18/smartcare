@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, Mail, Lock, User, Guitar as Hospital } from 'lucide-react';
-import { saveUser } from '../../utils/auth';
-import { sampleHospitals } from '../../data/hospitals';
+import { loginUser } from '../../utils/auth';
 
 const LoginForm = ({ onNavigate, onLogin }) => {
   const [formData, setFormData] = useState({
@@ -25,38 +24,10 @@ const LoginForm = ({ onNavigate, onLogin }) => {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      let user = null;
-
-      if (formData.role === 'hospital') {
-        // Find hospital by email
-        const hospital = sampleHospitals.find(h => h.email === formData.email);
-        if (hospital && formData.password === 'hospital123') {
-          user = hospital;
-        }
-      } else {
-        // Patient login - for demo, accept any email with password 'patient123'
-        if (formData.password === 'patient123') {
-          user = {
-            id: 'patient_' + Date.now(),
-            name: formData.email.split('@')[0],
-            email: formData.email,
-            role: 'patient',
-            createdAt: new Date()
-          };
-        }
-      }
-
-      if (user) {
-        saveUser(user);
-        onLogin(user);
-      } else {
-        setError('Invalid credentials. Try patient123 or hospital123 as password.');
-      }
+      const userData = await loginUser(formData);
+      onLogin(userData);
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -171,8 +142,8 @@ const LoginForm = ({ onNavigate, onLogin }) => {
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <p className="text-sm text-blue-700 font-medium mb-2">Demo Credentials:</p>
             <div className="text-xs text-blue-600 space-y-1">
-              <p>Patient: any email + password "patient123"</p>
-              <p>Hospital: hospital email + password "hospital123"</p>
+              <p>Patient: patient@demo.com / patient123</p>
+              <p>Hospital: admin@citygeneral.com / hospital123</p>
             </div>
           </div>
 

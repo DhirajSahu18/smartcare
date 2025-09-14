@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Phone, MapPin, AlertCircle } from 'lucide-react';
-import { chatWithAI } from '../../utils/gemini';
-import { sampleHospitals } from '../../data/hospitals';
+import { aiAPI, hospitalsAPI } from '../../utils/api';
 
 const UrgentHelp = ({ onNavigate, analysis }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emergencyHospitals, setEmergencyHospitals] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -23,8 +23,27 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
   }, [analysis]);
 
   useEffect(() => {
+    // Load emergency hospitals
+    loadEmergencyHospitals();
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const loadEmergencyHospitals = async () => {
+    try {
+      const response = await hospitalsAPI.getHospitals({
+        specialty: 'Emergency Medicine',
+        limit: 3
+      });
+      if (response.success) {
+        setEmergencyHospitals(response.data.hospitals);
+      }
+    } catch (error) {
+      console.error('Failed to load emergency hospitals:', error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,8 +64,12 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
     setLoading(true);
 
     try {
-      const aiResponse = await chatWithAI(inputMessage, analysis);
-      setMessages(prev => [...prev, aiResponse]);
+      const response = await aiAPI.chatWithAI(inputMessage, analysis?.id);
+      if (response.success) {
+        setMessages(prev => [...prev, response.data.message]);
+      } else {
+        throw new Error(response.message || 'Chat failed');
+      }
     } catch (error) {
       const errorMessage = {
         id: Date.now().toString(),
@@ -69,12 +92,6 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
 
   const handleFindHospitals = () => {
     onNavigate('find-hospitals', { analysis });
-  };
-
-  const getNearbyEmergencyHospitals = () => {
-    return sampleHospitals
-      .filter(h => h.specialties.includes('Emergency Medicine'))
-      .slice(0, 3);
   };
 
   const formatTime = (timestamp) => {
@@ -202,8 +219,8 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Nearby Emergency Hospitals</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {getNearbyEmergencyHospitals().map((hospital) => (
-            <div key={hospital.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          {emergencyHospitals.map((hospital) => (
+            <div key={hospital._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-900 mb-2">{hospital.name}</h3>
               <div className="flex items-start space-x-2 mb-2">
                 <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
@@ -211,7 +228,7 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
               </div>
               <div className="flex items-center space-x-2 mb-3">
                 <Phone className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">{hospital.contact}</span>
+                <span className="text-sm text-gray-600">{hospital.phone}</span>
               </div>
               <button
                 onClick={() => onNavigate('book-appointment', { hospital, analysis })}

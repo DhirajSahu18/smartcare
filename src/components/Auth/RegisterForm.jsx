@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, Mail, Lock, User, Guitar as Hospital, Phone } from 'lucide-react';
-import { saveUser } from '../../utils/auth';
+import { registerUser } from '../../utils/auth';
 
 const RegisterForm = ({ onNavigate, onLogin }) => {
   const [formData, setFormData] = useState({
@@ -30,20 +30,10 @@ const RegisterForm = ({ onNavigate, onLogin }) => {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const user = {
-        id: formData.role + '_' + Date.now(),
-        ...formData,
-        rating: formData.role === 'hospital' ? 4.0 : undefined,
-        createdAt: new Date()
-      };
-
-      saveUser(user);
-      onLogin(user);
+      const userData = await registerUser(formData);
+      onLogin(userData);
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
