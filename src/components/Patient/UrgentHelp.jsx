@@ -39,9 +39,54 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
       });
       if (response.success) {
         setEmergencyHospitals(response.data.hospitals);
+      } else {
+        // Load sample emergency hospitals
+        const sampleEmergencyHospitals = [
+          {
+            _id: '1',
+            name: 'Lilavati Hospital Emergency',
+            address: 'A-791, Bandra Reclamation, Bandra West, Mumbai, Maharashtra 400050',
+            phone: '+91-22-2675-1000'
+          },
+          {
+            _id: '2', 
+            name: 'Kokilaben Hospital Emergency',
+            address: 'Rao Saheb Achutrao Patwardhan Marg, Four Bunglows, Andheri West, Mumbai, Maharashtra 400053',
+            phone: '+91-22-4269-6969'
+          },
+          {
+            _id: '3',
+            name: 'Hinduja Hospital Emergency',
+            address: 'Veer Savarkar Marg, Mahim, Mumbai, Maharashtra 400016', 
+            phone: '+91-22-4510-8888'
+          }
+        ];
+        setEmergencyHospitals(sampleEmergencyHospitals);
       }
     } catch (error) {
       console.error('Failed to load emergency hospitals:', error);
+      // Load sample emergency hospitals as fallback
+      const sampleEmergencyHospitals = [
+        {
+          _id: '1',
+          name: 'Lilavati Hospital Emergency',
+          address: 'A-791, Bandra Reclamation, Bandra West, Mumbai, Maharashtra 400050',
+          phone: '+91-22-2675-1000'
+        },
+        {
+          _id: '2', 
+          name: 'Kokilaben Hospital Emergency',
+          address: 'Rao Saheb Achutrao Patwardhan Marg, Four Bunglows, Andheri West, Mumbai, Maharashtra 400053',
+          phone: '+91-22-4269-6969'
+        },
+        {
+          _id: '3',
+          name: 'Hinduja Hospital Emergency',
+          address: 'Veer Savarkar Marg, Mahim, Mumbai, Maharashtra 400016', 
+          phone: '+91-22-4510-8888'
+        }
+      ];
+      setEmergencyHospitals(sampleEmergencyHospitals);
     }
   };
 
