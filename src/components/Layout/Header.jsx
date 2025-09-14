@@ -51,6 +51,26 @@ const Header = ({ onNavigate, currentView }) => {
                       Start Care
                     </button>
                     <button
+                      onClick={() => onNavigate('find-hospitals')}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        currentView === 'find-hospitals'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-700 hover:text-blue-600'
+                      }`}
+                    >
+                      Find Hospitals
+                    </button>
+                    <button
+                      onClick={() => onNavigate('urgent-help')}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        currentView === 'urgent-help'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-700 hover:text-blue-600'
+                      }`}
+                    >
+                      Urgent Help
+                    </button>
+                    <button
                       onClick={() => onNavigate('my-appointments')}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         currentView === 'my-appointments'

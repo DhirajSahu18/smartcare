@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Calculate distance between two points using Haversine formula
 const calculateDistance = (lat1, lng1, lat2, lng2) => {
-  const R = 3959; // Earth's radius in miles
+  const R = 6371; // Earth's radius in kilometers
   const dLat = toRadians(lat2 - lat1);
   const dLng = toRadians(lng2 - lng1);
   
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
 
     // Location-based filtering
     if (lat && lng && radius) {
-      const radiusInMeters = parseFloat(radius) * 1609.34; // Convert miles to meters
+      const radiusInMeters = parseFloat(radius) * 1000; // Convert km to meters
       query.location = {
         $near: {
           $geometry: {
@@ -109,6 +109,62 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching hospitals'
+    });
+  }
+});
+
+// @route   POST /api/hospitals/bulk
+// @desc    Add multiple hospitals to database
+// @access  Private (Admin only - for now public for seeding)
+router.post('/bulk', async (req, res) => {
+  try {
+    const { hospitals } = req.body;
+
+    if (!hospitals || !Array.isArray(hospitals)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Hospitals array is required'
+      });
+    }
+
+    // Validate each hospital has required fields
+    const requiredFields = ['name', 'email', 'phone', 'password', 'type', 'address', 'location'];
+    for (const hospital of hospitals) {
+      for (const field of requiredFields) {
+        if (!hospital[field]) {
+          return res.status(400).json({
+            success: false,
+            message: `Missing required field: ${field} in hospital: ${hospital.name || 'Unknown'}`
+          });
+        }
+      }
+    }
+
+    // Insert hospitals
+    const insertedHospitals = await Hospital.insertMany(hospitals);
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully added ${insertedHospitals.length} hospitals`,
+      data: {
+        count: insertedHospitals.length,
+        hospitals: insertedHospitals
+      }
+    });
+
+  } catch (error) {
+    console.error('Bulk insert hospitals error:', error);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate hospital found. Some hospitals may already exist in the database.'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding hospitals'
     });
   }
 });

@@ -45,10 +45,10 @@ const toRadians = (degrees) => {
   return degrees * (Math.PI / 180);
 };
 
-// Get default location (NYC) if geolocation fails
+// Get default location (Mumbai, India) if geolocation fails
 export const getDefaultLocation = () => {
   return {
-    latitude: 40.7589,
-    longitude: -73.9851
+    latitude: 19.0760,
+    longitude: 72.8777
   };
 };

@@ -141,7 +141,7 @@ const generateChatResponse = (message, context) => {
   const msg = message.toLowerCase();
   
   if (msg.includes('emergency') || msg.includes('urgent')) {
-    return "I understand you're concerned about urgent symptoms. If you're experiencing severe chest pain, difficulty breathing, loss of consciousness, or other life-threatening symptoms, please call 911 immediately or go to the nearest emergency room.";
+    return "I understand you're concerned about urgent symptoms. If you're experiencing severe chest pain, difficulty breathing, loss of consciousness, or other life-threatening symptoms, please call 108 (National Emergency Number) or 102 (Ambulance) immediately or go to the nearest emergency room.";
   }
   
   if (msg.includes('pain')) {

@@ -119,13 +119,14 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
             <p className="font-medium text-red-800 mb-1">Emergency Situations</p>
             <p className="text-red-700">
               If you're experiencing severe chest pain, difficulty breathing, loss of consciousness, 
-              severe bleeding, or other life-threatening symptoms, call 911 immediately or go to the nearest emergency room.
+              severe bleeding, or other life-threatening symptoms, call 108 (National Emergency Number) 
+              or 102 (Ambulance) immediately or go to the nearest emergency room.
             </p>
           </div>
         </div>
         <div className="mt-3 flex space-x-2">
           <button className="bg-red-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-red-700 transition-colors">
-            📞 Call 911
+            📞 Call 108
           </button>
           <button 
             onClick={handleFindHospitals}

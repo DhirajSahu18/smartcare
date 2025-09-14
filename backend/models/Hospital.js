@@ -21,7 +21,7 @@ const hospitalSchema = new mongoose.Schema({
     required: [true, 'Phone number is required'],
     trim: true,
     minlength: [10, 'Phone number must be at least 10 characters'],
-    maxlength: [15, 'Phone number cannot exceed 15 characters']
+    maxlength: [20, 'Phone number cannot exceed 20 characters']
   },
   password: {
     type: String,
@@ -47,10 +47,13 @@ const hospitalSchema = new mongoose.Schema({
       'Urgent Care',
       'Dermatology Clinic',
       'Eye Care Center',
+      'Eye Specialty Hospital',
       'Pulmonary Hospital',
       'Mental Health Center',
+      'Mental Health & Neuroscience Institute',
       'Nephrology Center',
       'Oncology Center',
+      'Cancer Specialty Hospital',
       'Endocrinology Clinic',
       'Rehabilitation Center',
       'Geriatric Hospital',
@@ -81,7 +84,10 @@ const hospitalSchema = new mongoose.Schema({
       'Cardiology Center',
       'Fertility Center',
       'Pediatric Hospital',
-      'Pain Institute'
+      'Pain Institute',
+      'Multi-Specialty Hospital',
+      'Super Specialty Hospital',
+      'Government Medical Institute'
     ]
   },
   address: {
