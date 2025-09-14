@@ -17,23 +17,34 @@ function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [user, setUser] = useState(null);
   const [viewData, setViewData] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const initializeApp = async () => {
+      try {
     const storedUser = getUser();
     if (storedUser) {
-      // Verify user session with backend
-      verifyUser()
-        .then((userData) => {
+          try {
+            await verifyUser();
           setUser(storedUser);
           const userRole = getUserRole();
           setCurrentView(userRole === 'hospital' ? 'hospital-dashboard' : 'start-care');
-        })
-        .catch((error) => {
+          } catch (error) {
           console.error('Session verification failed:', error);
-          // Keep user logged out if session is invalid
           setCurrentView('landing');
-        });
-    }
+          }
+        } else {
+          setCurrentView('landing');
+        }
+      } catch (error) {
+        console.error('App initialization error:', error);
+        setCurrentView('landing');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeApp();
   }, []);
 
   const handleNavigate = (view, data = {}) => {
@@ -50,6 +61,14 @@ function App() {
   const handleAnalysisComplete = (analysis) => {
     setViewData(prev => ({ ...prev, analysis }));
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg text-gray-600">Loading SmartCare...</div>
+      </div>
+    );
+  }
 
   const renderCurrentView = () => {
     switch (currentView) {
