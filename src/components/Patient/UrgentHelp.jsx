@@ -125,31 +125,31 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
       console.log('Using sessionId:', sessionId);
       console.log('Analysis data:', analysis);
       
-      // Use local chat logic instead of API for better responses
-      const aiResponse = generateLocalChatResponse(inputMessage, analysis);
-      
-      const responseMessage = {
-        id: Date.now().toString(),
-        type: 'ai',
-        content: aiResponse,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, responseMessage]);
-      
-      /* Fallback to API if needed
+      // Try API first
       const response = await aiAPI.chatWithAI(inputMessage, sessionId);
       if (response.success) {
+        console.log('API response received:', response.data);
         setMessages(prev => [...prev, response.data.message]);
       } else {
-        throw new Error(response.message || 'Chat failed');
+        console.warn('API failed, using local response:', response.message);
+        // Fallback to local response if API fails
+        const aiResponse = generateLocalChatResponse(inputMessage, analysis);
+        const responseMessage = {
+          id: Date.now().toString(),
+          type: 'ai',
+          content: aiResponse,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, responseMessage]);
       }
-      */
     } catch (error) {
+      console.error('Chat API error:', error);
+      // Fallback to local response on error
+      const aiResponse = generateLocalChatResponse(inputMessage, analysis);
       const errorMessage = {
         id: Date.now().toString(),
         type: 'ai',
-        content: "⚠️ I apologize, but I'm having trouble processing your request right now. If this is a medical emergency, please call 108 (National Emergency) or 102 (Ambulance) immediately or go to the nearest emergency room.",
+        content: aiResponse,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
