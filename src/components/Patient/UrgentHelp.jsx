@@ -20,6 +20,9 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
+    
+    // Debug log to check analysis structure
+    console.log('Analysis object in UrgentHelp:', analysis);
   }, [analysis]);
 
   useEffect(() => {
@@ -109,14 +112,39 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
     setLoading(true);
 
     try {
-      // Use the correct session ID from analysis
-      const sessionId = analysis?.id || analysis?._id || analysis?.sessionId || null;
+      // Create a more robust sessionId extraction
+      let sessionId = null;
+      if (analysis) {
+        sessionId = analysis.id || analysis._id || analysis.sessionId;
+        // If still no sessionId, create one from the analysis data
+        if (!sessionId && analysis.predictedDisease) {
+          sessionId = `session_${Date.now()}_${analysis.predictedDisease.replace(/\s+/g, '_')}`;
+        }
+      }
+      
+      console.log('Using sessionId:', sessionId);
+      console.log('Analysis data:', analysis);
+      
+      // Use local chat logic instead of API for better responses
+      const aiResponse = generateLocalChatResponse(inputMessage, analysis);
+      
+      const responseMessage = {
+        id: Date.now().toString(),
+        type: 'ai',
+        content: aiResponse,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, responseMessage]);
+      
+      /* Fallback to API if needed
       const response = await aiAPI.chatWithAI(inputMessage, sessionId);
       if (response.success) {
         setMessages(prev => [...prev, response.data.message]);
       } else {
         throw new Error(response.message || 'Chat failed');
       }
+      */
     } catch (error) {
       const errorMessage = {
         id: Date.now().toString(),
@@ -148,6 +176,79 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
     });
   };
 
+  // Local chat response generator with better logic
+  const generateLocalChatResponse = (message, analysisContext) => {
+    const msg = message.toLowerCase();
+    
+    // Emergency responses
+    if (msg.includes('emergency') || msg.includes('urgent') || msg.includes('severe') || msg.includes('can\'t breathe') || msg.includes('chest pain')) {
+      return "🚨 This sounds like it could be an emergency! If you're experiencing severe symptoms like chest pain, difficulty breathing, or loss of consciousness, please call 108 (National Emergency) or 102 (Ambulance) immediately or go to the nearest emergency room. Don't wait!";
+    }
+    
+    // Context-aware responses based on analysis
+    if (analysisContext?.predictedDisease) {
+      const disease = analysisContext.predictedDisease.toLowerCase();
+      
+      if (msg.includes('pain') || msg.includes('hurt')) {
+        if (disease.includes('heart')) {
+          return "💔 Given your heart-related symptoms, any chest pain should be taken seriously. If the pain is severe, radiating to your arm, jaw, or back, or accompanied by shortness of breath, call 108 immediately. For mild discomfort, rest and avoid physical exertion until you can see a doctor.";
+        } else if (disease.includes('migraine') || disease.includes('headache')) {
+          return "🤕 For your headache/migraine symptoms, try resting in a dark, quiet room. Apply a cold compress to your forehead. Stay hydrated and avoid bright lights. If this is the worst headache of your life or accompanied by fever, vision changes, or neck stiffness, seek immediate medical attention.";
+        }
+        return `😣 I understand you're experiencing pain related to ${analysisContext.predictedDisease}. ${analysisContext.careGuidance || 'Please monitor your symptoms and consult a healthcare provider if they worsen.'}`;
+      }
+      
+      if (msg.includes('medication') || msg.includes('medicine') || msg.includes('treatment')) {
+        return `💊 For ${analysisContext.predictedDisease}, I cannot recommend specific medications as I'm not a doctor. However, I suggest consulting with a ${analysisContext.specialty} specialist who can prescribe appropriate treatment. In the meantime, follow the care guidance: ${analysisContext.careGuidance}`;
+      }
+      
+      if (msg.includes('hospital') || msg.includes('doctor') || msg.includes('appointment')) {
+        return `🏥 Based on your ${analysisContext.predictedDisease} symptoms, I recommend seeing a ${analysisContext.specialty} specialist. The urgency level is ${analysisContext.urgencyLevel}. Would you like me to help you find nearby hospitals that specialize in ${analysisContext.specialty}?`;
+      }
+      
+      if (msg.includes('worried') || msg.includes('scared') || msg.includes('anxious')) {
+        return `🤗 I understand you're concerned about your ${analysisContext.predictedDisease} symptoms. It's natural to feel worried about health issues. Based on the analysis, your urgency level is ${analysisContext.urgencyLevel}. ${analysisContext.careGuidance} Remember, early medical attention is often the best approach.`;
+      }
+    }
+    
+    // Symptom-specific responses
+    if (msg.includes('fever') || msg.includes('temperature')) {
+      return "🌡️ For fever, rest and stay hydrated with plenty of fluids. You can take paracetamol as directed on the package. Monitor your temperature regularly. If fever exceeds 103°F (39.4°C), persists for more than 3 days, or is accompanied by severe symptoms like difficulty breathing, seek immediate medical attention.";
+    }
+    
+    if (msg.includes('cough') || msg.includes('cold')) {
+      return "🤧 For cough and cold symptoms, get plenty of rest and stay hydrated. Warm salt water gargles can help soothe your throat. Honey can also help with cough (not for children under 1 year). If cough persists for more than 2 weeks, produces blood, or you have difficulty breathing, consult a healthcare provider.";
+    }
+    
+    if (msg.includes('stomach') || msg.includes('nausea') || msg.includes('vomiting')) {
+      return "🤢 For stomach issues, try to rest and avoid solid foods temporarily. Stay hydrated with clear fluids like water, clear broths, or oral rehydration solutions. The BRAT diet (bananas, rice, applesauce, toast) can help. If you have severe abdominal pain, persistent vomiting, or signs of dehydration, seek medical attention.";
+    }
+    
+    if (msg.includes('headache') || msg.includes('head pain')) {
+      return "🤕 For headaches, try resting in a dark, quiet room and apply a cold or warm compress to your head or neck. Stay hydrated and consider over-the-counter pain relievers if appropriate. If this is a sudden, severe headache unlike any you've had before, or if accompanied by fever, vision changes, or neck stiffness, seek immediate medical care.";
+    }
+    
+    if (msg.includes('breathing') || msg.includes('shortness of breath')) {
+      return "🫁 Difficulty breathing can be serious. If you're having severe trouble breathing, chest pain, or feel like you're suffocating, call 108 immediately. For mild breathing issues, try to stay calm, sit upright, and breathe slowly. Avoid triggers like smoke or allergens.";
+    }
+    
+    // General supportive responses
+    if (msg.includes('thank') || msg.includes('thanks')) {
+      return "🙏 You're very welcome! I'm glad I could help. Remember, if your symptoms worsen or you have any concerns, don't hesitate to consult with a healthcare professional. Your health and well-being are important. Take care!";
+    }
+    
+    if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
+      return "👋 Hello! I'm here to help you with your health concerns and provide guidance. Please tell me more about what you're experiencing, and I'll do my best to provide helpful information and recommendations.";
+    }
+    
+    // Default contextual response
+    if (analysisContext?.predictedDisease) {
+      return `🩺 I'm here to help with your ${analysisContext.predictedDisease} symptoms. Based on the analysis, you should focus on: ${analysisContext.careGuidance} Is there something specific about your symptoms you'd like to discuss?`;
+    }
+    
+    // Fallback response
+    return "🤖 I'm here to help you with your health concerns. Could you please be more specific about your symptoms or what you're experiencing? For example, are you feeling pain, discomfort, fever, or other symptoms? The more details you provide, the better I can assist you.";
+  };
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
