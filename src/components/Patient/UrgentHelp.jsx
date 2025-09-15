@@ -109,7 +109,9 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
     setLoading(true);
 
     try {
-      const response = await aiAPI.chatWithAI(inputMessage, analysis?.id);
+      // Use the correct session ID from analysis
+      const sessionId = analysis?.id || analysis?._id || analysis?.sessionId || null;
+      const response = await aiAPI.chatWithAI(inputMessage, sessionId);
       if (response.success) {
         setMessages(prev => [...prev, response.data.message]);
       } else {

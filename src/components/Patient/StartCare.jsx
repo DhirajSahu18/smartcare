@@ -15,6 +15,10 @@ const StartCare = ({ onNavigate, onAnalysisComplete }) => {
       const response = await aiAPI.analyzeSymptoms(symptoms);
       if (response.success) {
         const analysisData = response.data.analysis;
+        // Ensure the analysis has a proper ID for session tracking
+        if (!analysisData.id && !analysisData._id) {
+          analysisData.sessionId = Date.now().toString();
+        }
         setAnalysis(analysisData);
         onAnalysisComplete?.(analysisData);
       } else {
@@ -24,6 +28,7 @@ const StartCare = ({ onNavigate, onAnalysisComplete }) => {
       console.error('Analysis failed:', error);
       // Show error to user
       setAnalysis({
+        sessionId: Date.now().toString(),
         predictedDisease: 'Analysis Error',
         specialty: 'General Medicine',
         urgencyLevel: 'medium',
