@@ -6,7 +6,6 @@ import { getUser, getUserId } from '../../utils/auth';
 const BookAppointment = ({ onNavigate, hospital, analysis }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [availableSlots, setAvailableSlots] = useState({});
   const [loading, setLoading] = useState(false);
   const [booked, setBooked] = useState(false);
   const [appointment, setAppointment] = useState(null);
@@ -17,25 +16,6 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     setSelectedDate(tomorrow.toISOString().split('T')[0]);
   }, [hospital]);
-
-  useEffect(() => {
-    if (selectedDate && hospital) {
-      loadHospitalSlots();
-      setSelectedTime(''); // Reset time when date changes
-    }
-  }, [selectedDate, hospital]);
-
-  const loadHospitalSlots = async () => {
-    try {
-      const response = await hospitalsAPI.getHospitalSlots(hospital._id, selectedDate);
-      if (response.success) {
-        setAvailableSlots(response.data.slots);
-      }
-    } catch (error) {
-      console.error('Failed to load hospital slots:', error);
-      setAvailableSlots({});
-    }
-  };
 
   const getNextFewDays = () => {
     const days = [];
@@ -57,10 +37,12 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
     return days;
   };
 
-  const getAvailableTimeSlots = () => {
-    return Object.entries(availableSlots)
-      .filter(([time, available]) => available)
-      .map(([time]) => time);
+  const getTimeSlots = () => {
+    return [
+      '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+      '12:00 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM',
+      '04:30 PM', '05:00 PM', '05:30 PM'
+    ];
   };
 
   const handleBookAppointment = async () => {
@@ -91,7 +73,6 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
       } else {
         throw new Error(response.message || 'Failed to book appointment');
       }
-      setBooked(true);
     } catch (error) {
       console.error('Failed to book appointment:', error);
       alert(error.message || 'Failed to book appointment. Please try again.');
@@ -250,10 +231,10 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
           {selectedDate && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Available Time Slots
+                Select Time Slot
               </label>
               <div className="grid grid-cols-3 gap-3">
-                {getAvailableTimeSlots().map((timeSlot) => (
+                {getTimeSlots().map((timeSlot) => (
                   <button
                     key={timeSlot}
                     onClick={() => setSelectedTime(timeSlot)}
@@ -268,10 +249,6 @@ const BookAppointment = ({ onNavigate, hospital, analysis }) => {
                   </button>
                 ))}
               </div>
-              
-              {getAvailableTimeSlots().length === 0 && (
-                <p className="text-sm text-gray-500 italic">No available slots for this date</p>
-              )}
             </div>
           )}
 

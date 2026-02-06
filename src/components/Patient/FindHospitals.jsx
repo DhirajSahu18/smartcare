@@ -89,8 +89,8 @@ const FindHospitals = ({ onNavigate, analysis }) => {
     // Sample hospitals for Mumbai area
     const sampleHospitals = [
       {
-        id: '1',
-        _id: '1',
+        id: '67a1b2c3d4e5f6a7b8c9d0e1',
+        _id: '67a1b2c3d4e5f6a7b8c9d0e1',
         name: 'Kokilaben Dhirubhai Ambani Hospital',
         type: 'Multi-Specialty Hospital',
         address: 'Rao Saheb Achutrao Patwardhan Marg, Four Bunglows, Andheri West, Mumbai, Maharashtra 400053',
@@ -102,8 +102,8 @@ const FindHospitals = ({ onNavigate, analysis }) => {
         distance: 5.2
       },
       {
-        id: '2',
-        _id: '2',
+        id: '67a1b2c3d4e5f6a7b8c9d0e2',
+        _id: '67a1b2c3d4e5f6a7b8c9d0e2',
         name: 'Lilavati Hospital and Research Centre',
         type: 'Multi-Specialty Hospital',
         address: 'A-791, Bandra Reclamation, Bandra West, Mumbai, Maharashtra 400050',
@@ -115,8 +115,8 @@ const FindHospitals = ({ onNavigate, analysis }) => {
         distance: 8.1
       },
       {
-        id: '3',
-        _id: '3',
+        id: '67a1b2c3d4e5f6a7b8c9d0e3',
+        _id: '67a1b2c3d4e5f6a7b8c9d0e3',
         name: 'Hinduja Hospital',
         type: 'Multi-Specialty Hospital',
         address: 'Veer Savarkar Marg, Mahim, Mumbai, Maharashtra 400016',
@@ -128,8 +128,8 @@ const FindHospitals = ({ onNavigate, analysis }) => {
         distance: 12.3
       },
       {
-        id: '4',
-        _id: '4',
+        id: '67a1b2c3d4e5f6a7b8c9d0e4',
+        _id: '67a1b2c3d4e5f6a7b8c9d0e4',
         name: 'Apollo Hospital Mumbai',
         type: 'Multi-Specialty Hospital',
         address: 'Plot No. 13, Parsik Hill Road, Off Uran Road, CBD Belapur, Navi Mumbai, Maharashtra 400614',
@@ -141,8 +141,8 @@ const FindHospitals = ({ onNavigate, analysis }) => {
         distance: 15.7
       },
       {
-        id: '5',
-        _id: '5',
+        id: '67a1b2c3d4e5f6a7b8c9d0e5',
+        _id: '67a1b2c3d4e5f6a7b8c9d0e5',
         name: 'Fortis Hospital Mulund',
         type: 'Multi-Specialty Hospital',
         address: 'Mulund Goregaon Link Road, Mulund West, Mumbai, Maharashtra 400078',

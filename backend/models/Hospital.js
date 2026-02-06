@@ -141,12 +141,12 @@ hospitalSchema.index({ createdAt: -1 });
 
 // Virtual for latitude
 hospitalSchema.virtual('latitude').get(function() {
-  return this.location.coordinates[1];
+  return this.location?.coordinates?.[1];
 });
 
 // Virtual for longitude
 hospitalSchema.virtual('longitude').get(function() {
-  return this.location.coordinates[0];
+  return this.location?.coordinates?.[0];
 });
 
 // Hash password before saving
@@ -169,7 +169,7 @@ hospitalSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Remove password from JSON output
 hospitalSchema.methods.toJSON = function() {
-  const hospital = this.toObject();
+  const hospital = this.toObject({ virtuals: false });
   delete hospital.password;
   return hospital;
 };

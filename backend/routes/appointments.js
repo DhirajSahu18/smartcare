@@ -12,29 +12,19 @@ router.post('/', authenticate, authorize('patient'), async (req, res) => {
   const session = await mongoose.startSession();
   
   try {
-    await session.withTransaction(async () => {
+    const result = await session.withTransaction(async () => {
       const { hospitalId, date, timeSlot, symptoms, disease } = req.body;
       const patientId = req.user._id;
+
+      // Validate hospitalId
+      if (!mongoose.Types.ObjectId.isValid(hospitalId)) {
+        throw new Error('Invalid hospital ID');
+      }
 
       // Check if hospital exists
       const hospital = await Hospital.findById(hospitalId).session(session);
       if (!hospital) {
         throw new Error('Hospital not found');
-      }
-
-      // Check if slot is available
-      const slot = await HospitalSlot.findOne({
-        hospital: hospitalId,
-        date: new Date(date),
-        timeSlot
-      }).session(session);
-
-      if (!slot) {
-        throw new Error('Time slot not found');
-      }
-
-      if (!slot.actuallyAvailable) {
-        throw new Error('Time slot is not available');
       }
 
       // Check if patient already has appointment at this time
@@ -49,7 +39,7 @@ router.post('/', authenticate, authorize('patient'), async (req, res) => {
         throw new Error('You already have an appointment at this time');
       }
 
-      // Create appointment
+      // Create appointment directly
       const appointment = new Appointment({
         patient: patientId,
         patientName: req.user.name,
@@ -63,30 +53,19 @@ router.post('/', authenticate, authorize('patient'), async (req, res) => {
       });
 
       await appointment.save({ session });
-
-      // Update slot availability
-      await HospitalSlot.findByIdAndUpdate(
-        slot._id,
-        { 
-          $inc: { currentAppointments: 1 },
-          isAvailable: slot.currentAppointments + 1 >= slot.maxAppointments ? false : slot.isAvailable
-        },
-        { session }
-      );
-
       return appointment;
     });
 
     res.status(201).json({
       success: true,
-      message: 'Appointment booked successfully'
+      message: 'Appointment booked successfully',
+      data: { appointment: result }
     });
 
   } catch (error) {
     console.error('Book appointment error:', error);
     
     if (error.message.includes('not found') || 
-        error.message.includes('not available') || 
         error.message.includes('already have')) {
       return res.status(400).json({
         success: false,
