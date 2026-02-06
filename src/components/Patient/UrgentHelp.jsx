@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Phone, MapPin, AlertCircle } from 'lucide-react';
-import { hospitalsAPI } from '../../utils/api';
+import { hospitalsAPI, aiAPI } from '../../utils/api';
 
 const UrgentHelp = ({ onNavigate, analysis }) => {
   const [messages, setMessages] = useState([]);
@@ -112,26 +112,16 @@ const UrgentHelp = ({ onNavigate, analysis }) => {
     setLoading(true);
 
     try {
-      // Direct Gemini API call
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('smartcare_user') ? JSON.parse(localStorage.getItem('smartcare_user')).token : ''}`
-        },
-        body: JSON.stringify({
-          message: inputMessage
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.success) {
+      // Call backend API using the proper API client
+      const sessionId = analysis?.id || null;
+      const data = await aiAPI.chatWithAI(inputMessage, sessionId);
+
+      if (data.success) {
         const aiMessage = {
-          id: Date.now().toString(),
+          id: data.data.message.id || Date.now().toString(),
           type: 'ai',
           content: data.data.message.content,
-          timestamp: new Date()
+          timestamp: new Date(data.data.message.timestamp) || new Date()
         };
         setMessages(prev => [...prev, aiMessage]);
       } else {

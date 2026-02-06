@@ -1,24 +1,95 @@
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate, schemas } from '../middleware/validation.js';
 import { AISession, ChatMessage } from '../models/index.js';
 
 const router = express.Router();
 
-// Initialize Gemini AI (fallback to mock if no API key)
-let genAI = null;
-let model = null;
+// Initialize Gemini AI lazily (to ensure dotenv has loaded)
+let client = null;
+let initialized = false;
+const MODEL_NAME = 'gemini-3-flash-preview';
 
-if (process.env.GEMINI_API_KEY) {
-  try {
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    console.log('✅ Gemini AI initialized successfully');
-  } catch (error) {
-    console.warn('⚠️ Gemini AI initialization failed, using mock responses:', error.message);
+const initializeGemini = () => {
+  if (initialized) return;
+  initialized = true;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  console.log('🔑 GEMINI_API_KEY present:', !!apiKey);
+  if (apiKey) {
+    console.log('🔑 API Key length:', apiKey.length);
+    console.log('🔑 API Key starts with:', apiKey.substring(0, 10) + '...');
   }
-}
+
+  if (apiKey) {
+    try {
+      client = new GoogleGenAI({ apiKey });
+      console.log('✅ Gemini AI client initialized with @google/genai');
+    } catch (error) {
+      console.warn('⚠️ Gemini AI initialization failed, using mock responses:', error.message);
+    }
+  } else {
+    console.warn('⚠️ No GEMINI_API_KEY found, using mock responses');
+  }
+};
+
+// Helper function to generate content using the new SDK
+const generateContent = async (prompt) => {
+  if (!client) return null;
+
+  const response = await client.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt
+  });
+
+  return response.text;
+};
+
+// @route   GET /api/ai/test
+// @desc    Test Gemini AI connectivity
+// @access  Public (for debugging)
+router.get('/test', async (req, res) => {
+  initializeGemini();
+
+  const status = {
+    initialized,
+    hasApiKey: !!process.env.GEMINI_API_KEY,
+    hasClient: !!client,
+    modelInfo: MODEL_NAME
+  };
+
+  if (!client) {
+    return res.json({
+      success: false,
+      message: 'Gemini client not initialized',
+      status
+    });
+  }
+
+  try {
+    console.log('🧪 Testing Gemini API with gemini-2.0-flash...');
+    const response = await generateContent('Say "Hello, I am working!" only.');
+    console.log('✅ Test response:', response);
+
+    res.json({
+      success: true,
+      message: 'Gemini API is working',
+      response: response,
+      model: MODEL_NAME,
+      status
+    });
+  } catch (error) {
+    console.error('❌ Gemini test error:', error);
+    res.json({
+      success: false,
+      message: 'Gemini API test failed',
+      error: error.message,
+      hint: 'Get a free API key from https://aistudio.google.com/apikey',
+      status
+    });
+  }
+});
 
 // Mock AI analysis for when Gemini is not available
 const mockGeminiAnalysis = (symptoms) => {
@@ -212,9 +283,12 @@ const generateChatResponse = (message, context) => {
 // @desc    Analyze symptoms using AI
 // @access  Private (Patient only)
 router.post('/analyze', authenticate, authorize('patient'), async (req, res) => {
+  // Initialize Gemini on first request (after dotenv has loaded)
+  initializeGemini();
+
   try {
     const { symptoms } = req.body;
-    
+
     if (!symptoms || symptoms.trim().length < 10) {
       return res.status(400).json({
         success: false,
@@ -223,34 +297,37 @@ router.post('/analyze', authenticate, authorize('patient'), async (req, res) => 
     }
 
     let analysis;
+    let usedModel = 'mock';
 
     // Try to use real Gemini AI first
-    if (model) {
+    if (client) {
       try {
+        console.log('🤖 Calling Gemini API for symptom analysis...');
         const prompt = `
           As a medical AI assistant, analyze these symptoms and provide a structured response.
-          
+
           Symptoms: "${symptoms}"
-          
+
           Please respond with a JSON object containing:
           - disease: Most likely condition name
           - specialty: Medical specialty that should handle this
           - urgency: "low", "medium", or "high"
           - guidance: Immediate care advice (2-3 sentences)
           - preventive: Array of 5 preventive measures
-          
+
           Important: This is for educational purposes only and should not replace professional medical advice.
+          Respond ONLY with the JSON object, no other text.
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        
+        const text = await generateContent(prompt);
+        console.log('✅ Gemini response received');
+
         // Try to parse JSON from response
         try {
           const jsonMatch = text.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             analysis = JSON.parse(jsonMatch[0]);
+            usedModel = MODEL_NAME;
           } else {
             throw new Error('No JSON found in response');
           }
@@ -264,6 +341,7 @@ router.post('/analyze', authenticate, authorize('patient'), async (req, res) => 
       }
     } else {
       // Use mock analysis
+      console.log('⚠️ No Gemini client, using mock analysis');
       analysis = mockGeminiAnalysis(symptoms);
     }
 
@@ -277,7 +355,7 @@ router.post('/analyze', authenticate, authorize('patient'), async (req, res) => 
       guidance: analysis.guidance,
       preventiveMeasures: analysis.preventive,
       confidence: 75,
-      aiModel: 'gemini-pro'
+      aiModel: usedModel
     });
 
     await aiSession.save();
@@ -312,9 +390,12 @@ router.post('/analyze', authenticate, authorize('patient'), async (req, res) => 
 // @desc    Chat with AI assistant
 // @access  Private (Patient only)
 router.post('/chat', authenticate, authorize('patient'), async (req, res) => {
+  // Initialize Gemini on first request (after dotenv has loaded)
+  initializeGemini();
+
   try {
     const { message, sessionId } = req.body;
-    
+
     if (!message || message.trim().length === 0) {
       return res.status(400).json({
         success: false,
@@ -341,28 +422,30 @@ router.post('/chat', authenticate, authorize('patient'), async (req, res) => {
     }
 
     let response;
+    let usedModel = 'mock';
 
     // Try to use real Gemini AI first
-    if (model) {
+    if (client) {
       try {
+        console.log('🤖 Calling Gemini API for chat...');
         let prompt = `
           You are a helpful medical AI assistant. Respond to this patient message in a caring, informative way.
-          
+
           Patient message: "${message}"
         `;
-        
+
         if (context) {
           prompt += `
-          
+
           Context from previous analysis:
           - Condition: ${context.disease}
           - Specialty: ${context.specialty}
           - Urgency: ${context.urgencyLevel}
           `;
         }
-        
+
         prompt += `
-        
+
         Guidelines:
         - Be empathetic and supportive
         - Provide helpful general information
@@ -371,15 +454,16 @@ router.post('/chat', authenticate, authorize('patient'), async (req, res) => {
         - Keep responses concise (2-3 sentences)
         `;
 
-        const result = await model.generateContent(prompt);
-        const aiResponse = await result.response;
-        response = aiResponse.text();
+        response = await generateContent(prompt);
+        usedModel = MODEL_NAME;
+        console.log('✅ Gemini API response received successfully');
       } catch (geminiError) {
-        console.warn('Gemini chat error, using mock response:', geminiError.message);
+        console.error('❌ Gemini chat error:', geminiError.message);
         response = generateChatResponse(message, context);
       }
     } else {
       // Use mock response
+      console.log('⚠️ No Gemini client available, using mock response');
       response = generateChatResponse(message, context);
     }
 
@@ -391,7 +475,7 @@ router.post('/chat', authenticate, authorize('patient'), async (req, res) => {
       response,
       messageType: 'general_health',
       sentiment: 'neutral',
-      aiModel: 'gemini-pro'
+      aiModel: usedModel
     });
 
     await chatMessage.save();

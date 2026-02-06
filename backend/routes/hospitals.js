@@ -85,11 +85,14 @@ router.get('/', async (req, res) => {
     // Calculate distances if user location provided
     if (lat && lng) {
       hospitals = hospitals.map(hospital => {
-        const hospitalObj = hospital.toObject();
+        // Handle both Mongoose documents and plain objects
+        const hospitalObj = typeof hospital.toObject === 'function'
+          ? hospital.toObject()
+          : { ...hospital };
         hospitalObj.distance = calculateDistance(
-          parseFloat(lat), 
-          parseFloat(lng), 
-          hospital.location?.coordinates[1] || hospital.latitude || 19.0760, 
+          parseFloat(lat),
+          parseFloat(lng),
+          hospital.location?.coordinates[1] || hospital.latitude || 19.0760,
           hospital.location?.coordinates[0] || hospital.longitude || 72.8777
         );
         return hospitalObj;
@@ -176,14 +179,14 @@ const getSampleHospitals = () => {
     },
     {
       _id: '4',
-      name: 'Apollo Hospital Mumbai',
+      name: 'Apollo Hospital Navi Mumbai',
       email: 'mumbai@apollohospitals.com',
       phone: '+91-22-3982-3982',
       type: 'Multi-Specialty Hospital',
       address: 'Plot No. 13, Parsik Hill Road, Off Uran Road, CBD Belapur, Navi Mumbai, Maharashtra 400614',
       location: {
         type: 'Point',
-        coordinates: [77.6068, 12.8996]
+        coordinates: [73.0297, 19.0178]
       },
       specialties: ['Cardiology', 'Oncology', 'Neurosurgery', 'Transplant Surgery'],
       diseases: ['Heart Disease', 'Cancer', 'Brain Tumors', 'Organ Failure'],
@@ -205,6 +208,166 @@ const getSampleHospitals = () => {
       diseases: ['Emergency Care', 'Heart Disease', 'Bone Fractures', 'Digestive Issues'],
       rating: 4.4,
       distance: 18.2
+    },
+    {
+      _id: '6',
+      name: 'Jaslok Hospital and Research Centre',
+      email: 'info@jaslokhospital.net',
+      phone: '+91-22-6657-3333',
+      type: 'Multi-Specialty Hospital',
+      address: '15, Dr. Deshmukh Marg, Pedder Road, Mumbai, Maharashtra 400026',
+      location: {
+        type: 'Point',
+        coordinates: [72.8105, 18.9712]
+      },
+      specialties: ['Cardiology', 'Oncology', 'Neurology', 'Gastroenterology', 'Nephrology'],
+      diseases: ['Heart Disease', 'Cancer', 'Neurological Disorders', 'Liver Disease', 'Kidney Disease'],
+      rating: 4.6,
+      distance: 10.5
+    },
+    {
+      _id: '7',
+      name: 'Breach Candy Hospital',
+      email: 'info@breachcandyhospital.org',
+      phone: '+91-22-2367-1888',
+      type: 'Multi-Specialty Hospital',
+      address: '60-A, Bhulabhai Desai Road, Mumbai, Maharashtra 400026',
+      location: {
+        type: 'Point',
+        coordinates: [72.8057, 18.9688]
+      },
+      specialties: ['Cardiology', 'Orthopedics', 'General Surgery', 'Gynecology', 'Pediatrics'],
+      diseases: ['Heart Disease', 'Bone Injuries', 'Surgical Care', 'Women Health', 'Child Care'],
+      rating: 4.5,
+      distance: 11.2
+    },
+    {
+      _id: '8',
+      name: 'Nanavati Max Super Speciality Hospital',
+      email: 'info@nanavatimaxhospital.org',
+      phone: '+91-22-2626-7500',
+      type: 'Multi-Specialty Hospital',
+      address: 'S.V. Road, Vile Parle West, Mumbai, Maharashtra 400056',
+      location: {
+        type: 'Point',
+        coordinates: [72.8438, 19.0989]
+      },
+      specialties: ['Cardiology', 'Oncology', 'Neurology', 'Orthopedics', 'Urology'],
+      diseases: ['Heart Disease', 'Cancer', 'Stroke', 'Joint Problems', 'Urinary Disorders'],
+      rating: 4.4,
+      distance: 7.8
+    },
+    {
+      _id: '9',
+      name: 'Wockhardt Hospital Mumbai Central',
+      email: 'mumcentral@wockhardthospitals.com',
+      phone: '+91-22-6178-4444',
+      type: 'Multi-Specialty Hospital',
+      address: '1877, Dr. Anand Rao Nair Marg, Mumbai Central, Mumbai, Maharashtra 400011',
+      location: {
+        type: 'Point',
+        coordinates: [72.8217, 18.9696]
+      },
+      specialties: ['Cardiology', 'Orthopedics', 'Neurology', 'Gastroenterology', 'Nephrology'],
+      diseases: ['Heart Disease', 'Spine Problems', 'Brain Disorders', 'Digestive Issues', 'Kidney Disease'],
+      rating: 4.3,
+      distance: 9.4
+    },
+    {
+      _id: '10',
+      name: 'SevenHills Hospital',
+      email: 'info@sevenhillshospital.com',
+      phone: '+91-22-6767-6767',
+      type: 'Multi-Specialty Hospital',
+      address: 'Marol Maroshi Road, Andheri East, Mumbai, Maharashtra 400059',
+      location: {
+        type: 'Point',
+        coordinates: [72.8765, 19.1173]
+      },
+      specialties: ['Cardiology', 'Oncology', 'Orthopedics', 'Neurology', 'Emergency Medicine'],
+      diseases: ['Heart Disease', 'Cancer', 'Bone Fractures', 'Neurological Disorders', 'Emergency Care'],
+      rating: 4.2,
+      distance: 6.3
+    },
+    {
+      _id: '11',
+      name: 'Bombay Hospital and Medical Research Centre',
+      email: 'info@bombayhospital.com',
+      phone: '+91-22-2206-7676',
+      type: 'Multi-Specialty Hospital',
+      address: '12, New Marine Lines, Mumbai, Maharashtra 400020',
+      location: {
+        type: 'Point',
+        coordinates: [72.8258, 18.9432]
+      },
+      specialties: ['Cardiology', 'Oncology', 'Neurology', 'Gastroenterology', 'Pulmonology'],
+      diseases: ['Heart Disease', 'Cancer', 'Stroke', 'Liver Disease', 'Lung Disease'],
+      rating: 4.5,
+      distance: 13.1
+    },
+    {
+      _id: '12',
+      name: 'S L Raheja Hospital (A Fortis Associate)',
+      email: 'info@rahejahospital.com',
+      phone: '+91-22-6652-9999',
+      type: 'Multi-Specialty Hospital',
+      address: 'Raheja Rugnalaya Marg, Mahim West, Mumbai, Maharashtra 400016',
+      location: {
+        type: 'Point',
+        coordinates: [72.8401, 19.0384]
+      },
+      specialties: ['Cardiology', 'Orthopedics', 'Neurology', 'Gastroenterology', 'Endocrinology'],
+      diseases: ['Heart Disease', 'Joint Problems', 'Brain Disorders', 'Digestive Issues', 'Diabetes'],
+      rating: 4.3,
+      distance: 8.9
+    },
+    {
+      _id: '13',
+      name: 'Hiranandani Hospital Powai',
+      email: 'info@hiranandanihospital.org',
+      phone: '+91-22-2576-3300',
+      type: 'Multi-Specialty Hospital',
+      address: 'Hillside Avenue, Hiranandani Gardens, Powai, Mumbai, Maharashtra 400076',
+      location: {
+        type: 'Point',
+        coordinates: [72.9054, 19.1197]
+      },
+      specialties: ['Cardiology', 'Orthopedics', 'Pediatrics', 'Gynecology', 'General Surgery'],
+      diseases: ['Heart Disease', 'Bone Problems', 'Child Care', 'Women Health', 'Surgical Care'],
+      rating: 4.4,
+      distance: 4.5
+    },
+    {
+      _id: '14',
+      name: 'Global Hospital Parel',
+      email: 'info@globalhospitalsmumbai.com',
+      phone: '+91-22-6767-0101',
+      type: 'Multi-Specialty Hospital',
+      address: '35, Dr. E. Borges Road, Hospital Avenue, Parel, Mumbai, Maharashtra 400012',
+      location: {
+        type: 'Point',
+        coordinates: [72.8416, 19.0048]
+      },
+      specialties: ['Transplant Surgery', 'Cardiology', 'Oncology', 'Nephrology', 'Hepatology'],
+      diseases: ['Organ Failure', 'Heart Disease', 'Cancer', 'Kidney Disease', 'Liver Disease'],
+      rating: 4.6,
+      distance: 10.8
+    },
+    {
+      _id: '15',
+      name: 'Tata Memorial Hospital',
+      email: 'info@tmc.gov.in',
+      phone: '+91-22-2417-7000',
+      type: 'Specialty Hospital',
+      address: 'Dr. E. Borges Road, Parel, Mumbai, Maharashtra 400012',
+      location: {
+        type: 'Point',
+        coordinates: [72.8423, 19.0041]
+      },
+      specialties: ['Oncology', 'Radiation Oncology', 'Surgical Oncology', 'Medical Oncology'],
+      diseases: ['Cancer', 'Tumors', 'Leukemia', 'Lymphoma'],
+      rating: 4.9,
+      distance: 10.9
     }
   ];
 };
